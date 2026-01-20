@@ -159,6 +159,7 @@
 	let chatFiles = [];
 	let files = [];
 	let params = {};
+	let systemPrompt = '';
 
 	$: if (chatIdProp) {
 		navigateHandler();
@@ -1612,6 +1613,7 @@
 
 		messageInput?.setText('');
 		prompt = '';
+		// Note: systemPrompt is kept until files are cleared, as it's tied to file uploads
 
 		const messages = createMessagesList(history, history.currentId);
 		const _files = JSON.parse(JSON.stringify(files));
@@ -1885,11 +1887,14 @@
 			params?.stream_response ??
 			true;
 
+		// Use systemPrompt from MessageInput if provided, otherwise fall back to params or settings
+		const effectiveSystemPrompt = systemPrompt || params?.system || $settings.system;
+		
 		let messages = [
-			params?.system || $settings.system
+			effectiveSystemPrompt
 				? {
 						role: 'system',
-						content: `${params?.system ?? $settings?.system ?? ''}`
+						content: `${effectiveSystemPrompt}`
 					}
 				: undefined,
 			..._messages.map((message) => ({
@@ -1973,7 +1978,13 @@
 				variables: {
 					...getPromptVariables($user?.name, $settings?.userLocation ? userLocation : undefined)
 				},
-				model_item: $models.find((m) => m.id === model.id),
+				model_item: {
+					...$models.find((m) => m.id === model.id),
+					params: {
+						...($models.find((m) => m.id === model.id)?.params ?? {}),
+						...(effectiveSystemPrompt ? { system: effectiveSystemPrompt } : {})
+					}
+				},
 
 				session_id: $socket?.id,
 				chat_id: $chatId,
@@ -2551,6 +2562,7 @@
 									bind:webSearchEnabled
 									bind:atSelectedModel
 									bind:showCommands
+									bind:systemPrompt
 									toolServers={$toolServers}
 									{generating}
 									{stopResponse}
@@ -2559,6 +2571,9 @@
 									onChange={(data) => {
 										if (!$temporaryChatEnabled) {
 											saveDraft(data, $chatId);
+										}
+										if (data.systemPrompt !== undefined) {
+											systemPrompt = data.systemPrompt;
 										}
 									}}
 									on:submit={async (e) => {
@@ -2593,6 +2608,7 @@
 									bind:webSearchEnabled
 									bind:atSelectedModel
 									bind:showCommands
+									bind:systemPrompt
 									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
@@ -2601,6 +2617,9 @@
 									onChange={(data) => {
 										if (!$temporaryChatEnabled) {
 											saveDraft(data);
+										}
+										if (data.systemPrompt !== undefined) {
+											systemPrompt = data.systemPrompt;
 										}
 									}}
 									on:submit={async (e) => {

@@ -47,6 +47,8 @@
 
 	export let selectedToolIds = [];
 	export let selectedFilterIds = [];
+	
+	let systemPrompt = '';
 
 	export let showCommands = false;
 
@@ -212,11 +214,17 @@
 					bind:webSearchEnabled
 					bind:atSelectedModel
 					bind:showCommands
+					bind:systemPrompt
 					{toolServers}
 					{stopResponse}
 					{createMessagePair}
 					placeholder={$i18n.t('How can I help you today?')}
-					{onChange}
+					onChange={(data) => {
+						if (onChange) onChange(data);
+						if (data.systemPrompt !== undefined) {
+							systemPrompt = data.systemPrompt;
+						}
+					}}
 					{onUpload}
 					on:submit={(e) => {
 						dispatch('submit', e.detail);
