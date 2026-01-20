@@ -4,7 +4,7 @@
 	dayjs.extend(relativeTime);
 
 	import { toast } from 'svelte-sonner';
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, onDestroy, getContext, tick } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { WEBUI_NAME, knowledge, user } from '$lib/stores';
@@ -43,8 +43,43 @@
 
 	let allItemsLoaded = false;
 	let itemsLoading = false;
+	let hasLoadedInitialPage = false;
 
-	$: if (loaded && query !== undefined && viewOption !== undefined) {
+	// Debounce timer for search queries
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let lastQuery = '';
+	let lastViewOption = '';
+	let isInitialLoad = true;
+
+	// Debounce function to delay API calls for search queries
+	const debounceSearch = (callback: () => void, delay: number = 500) => {
+		if (searchDebounceTimer) {
+			clearTimeout(searchDebounceTimer);
+		}
+		searchDebounceTimer = setTimeout(callback, delay);
+	};
+
+	// Handle query changes with debounce (only for search input, not initial load)
+	$: if (loaded && query !== undefined && !isInitialLoad) {
+		if (query !== lastQuery) {
+			lastQuery = query;
+			debounceSearch(() => {
+				// Only execute if query hasn't changed during debounce
+				if (query === lastQuery) {
+					init();
+				}
+			});
+		}
+	}
+
+	// Handle viewOption changes immediately (no debounce for filter changes)
+	$: if (loaded && viewOption !== undefined && viewOption !== lastViewOption && !isInitialLoad) {
+		lastViewOption = viewOption;
+		// Cancel any pending search debounce when filter changes
+		if (searchDebounceTimer) {
+			clearTimeout(searchDebounceTimer);
+			searchDebounceTimer = null;
+		}
 		init();
 	}
 
@@ -54,10 +89,13 @@
 		total = null;
 		allItemsLoaded = false;
 		itemsLoading = false;
+		hasLoadedInitialPage = false;
 	};
 
 	const loadMoreItems = async () => {
-		if (allItemsLoaded) return;
+		if (allItemsLoaded || itemsLoading) return;
+		// Prevent loading more if we haven't loaded the first page yet
+		if (!hasLoadedInitialPage || items === null) return;
 		page += 1;
 		await getItemsPage();
 	};
@@ -90,6 +128,11 @@
 				items = [...items, ...pageItems];
 			} else {
 				items = pageItems;
+			}
+			
+			// Mark that we've loaded at least the first page
+			if (page === 1) {
+				hasLoadedInitialPage = true;
 			}
 		}
 
@@ -129,7 +172,21 @@
 
 	onMount(async () => {
 		viewOption = localStorage?.workspaceViewOption || '';
+		lastViewOption = viewOption;
+		lastQuery = query;
+		// Set isInitialLoad to false before setting loaded to true to prevent reactive statements from firing
+		isInitialLoad = false;
 		loaded = true;
+		// Trigger initial load immediately
+		await init();
+	});
+
+	onDestroy(() => {
+		// Clean up debounce timer when component is destroyed
+		if (searchDebounceTimer) {
+			clearTimeout(searchDebounceTimer);
+			searchDebounceTimer = null;
+		}
 	});
 </script>
 
