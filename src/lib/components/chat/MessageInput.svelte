@@ -66,7 +66,7 @@
 	import ToolServersModal from './ToolServersModal.svelte';
 
 	import RichTextInput from '../common/RichTextInput.svelte';
-	import Tooltip from '../common/Tooltip.svelte';
+import Tooltip from '../common/Tooltip.svelte';
 	import FileItem from '../common/FileItem.svelte';
 	import Image from '../common/Image.svelte';
 
@@ -161,30 +161,27 @@ let prevNonImageCount = 0;
 		systemPrompt
 	});
 
-// Show system prompt input when files are uploaded (non-image files)
+	// Show system prompt input when files are uploaded (all file types)
 	$: {
-		const nonImageFiles = files.filter(
-			(file) => file.type !== 'image' && !(file?.content_type ?? '').startsWith('image/')
-		);
-		const nonImageCount = nonImageFiles.length;
+		const fileCount = files.length;
 
-		// If new non-image files were added after dismissal, re-open and reset dismissal
-		if (nonImageCount > prevNonImageCount) {
+		// If new files were added after dismissal, re-open and reset dismissal
+		if (fileCount > prevNonImageCount) {
 			systemPromptDismissed = false;
 		}
 
-		if (nonImageCount > 0 && !systemPromptDismissed) {
+		if (fileCount > 0 && !systemPromptDismissed) {
 			showSystemPromptInput = true;
 		}
 
-		if (nonImageCount === 0) {
+		if (fileCount === 0) {
 			// Only hide and clear if all files are removed
 			showSystemPromptInput = false;
 			systemPrompt = '';
 			systemPromptDismissed = false;
 		}
 
-		prevNonImageCount = nonImageCount;
+		prevNonImageCount = fileCount;
 	}
 
 	const inputVariableHandler = async (text: string): Promise<string> => {
@@ -1291,6 +1288,7 @@ let prevNonImageCount = 0;
 											class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
 											on:click={() => {
 												showSystemPromptInput = false;
+												systemPromptDismissed = true;
 												systemPrompt = '';
 											}}
 											aria-label={$i18n.t('Hide system prompt')}
@@ -1303,9 +1301,9 @@ let prevNonImageCount = 0;
 										bind:value={systemPrompt}
 										class="w-full text-sm outline-hidden resize-vertical rounded-md px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
 										rows="3"
-										placeholder={$i18n.t('Enter system prompt here')}
+										placeholder={$i18n.t('e.g., Analyze the document and extract key points')}
 									/>
-									<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+									<p class="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
 										{$i18n.t('This prompt will guide the model on how to process the uploaded files.')}
 									</p>
 								</div>
