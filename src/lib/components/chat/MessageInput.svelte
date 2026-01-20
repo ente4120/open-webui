@@ -124,7 +124,7 @@ export let codeInterpreterEnabled = false;
 let systemPrompt = '';
 let showSystemPromptInput = false;
 let systemPromptDismissed = false;
-let prevNonImageCount = 0;
+let prevFileCount = 0;
 
 	let inputContent = null;
 
@@ -166,7 +166,7 @@ let prevNonImageCount = 0;
 		const fileCount = files.length;
 
 		// If new files were added after dismissal, re-open and reset dismissal
-		if (fileCount > prevNonImageCount) {
+		if (fileCount > prevFileCount) {
 			systemPromptDismissed = false;
 		}
 
@@ -181,7 +181,7 @@ let prevNonImageCount = 0;
 			systemPromptDismissed = false;
 		}
 
-		prevNonImageCount = fileCount;
+		prevFileCount = fileCount;
 	}
 
 	const inputVariableHandler = async (text: string): Promise<string> => {

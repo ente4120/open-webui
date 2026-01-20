@@ -1887,8 +1887,21 @@
 			params?.stream_response ??
 			true;
 
-		// Use systemPrompt from MessageInput if provided, otherwise fall back to params or settings
-		const effectiveSystemPrompt = systemPrompt || params?.system || $settings.system;
+		// Get the model object and its params
+		const foundModel = $models.find((m) => m.id === model.id);
+		const modelParams = foundModel?.params ?? {};
+		
+		// Get the current systemPrompt value (ensure we read the latest value from the bound variable)
+		const currentSystemPrompt = systemPrompt || '';
+		
+		// Trim systemPrompt from MessageInput to check if user provided a value
+		const trimmedSystemPrompt = currentSystemPrompt.trim();
+		
+		// Check if user provided a system prompt in the textarea (even if empty after trim)
+		const hasUserSystemPrompt = currentSystemPrompt.length > 0;
+		
+		// Use systemPrompt from MessageInput if provided, otherwise fall back to params, model params, or settings
+		const effectiveSystemPrompt = trimmedSystemPrompt || params?.system || modelParams?.system || $settings.system;
 		
 		let messages = [
 			effectiveSystemPrompt
@@ -1979,10 +1992,11 @@
 					...getPromptVariables($user?.name, $settings?.userLocation ? userLocation : undefined)
 				},
 				model_item: {
-					...$models.find((m) => m.id === model.id),
+					...foundModel,
 					params: {
-						...($models.find((m) => m.id === model.id)?.params ?? {}),
-						...(effectiveSystemPrompt ? { system: effectiveSystemPrompt } : {})
+						...(modelParams ?? {}),
+						// Use the exact value from MessageInput if user provided one, otherwise use effectiveSystemPrompt
+						...(hasUserSystemPrompt ? { system: currentSystemPrompt } : effectiveSystemPrompt ? { system: effectiveSystemPrompt } : {})
 					}
 				},
 
