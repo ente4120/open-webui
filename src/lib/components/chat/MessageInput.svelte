@@ -121,10 +121,10 @@ export let imageGenerationEnabled = false;
 export let webSearchEnabled = false;
 export let codeInterpreterEnabled = false;
 
-let systemPrompt = '';
-let showSystemPromptInput = false;
-let systemPromptDismissed = false;
-let prevFileCount = 0;
+export let systemPrompt = '';
+	let showSystemPromptInput = false;
+	let systemPromptDismissed = false;
+	let prevFileCount = 0;
 
 	let inputContent = null;
 
@@ -142,7 +142,7 @@ let prevFileCount = 0;
 		integrationsMenuCloseOnOutsideClick = true;
 	}
 
-	$: onChange({
+$: onChange({
 		prompt,
 		files: files
 			.filter((file) => file.type !== 'image')

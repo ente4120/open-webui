@@ -161,6 +161,9 @@
 	let params = {};
 	let systemPrompt = '';
 
+// Reactive statement to ensure systemPrompt updates are tracked
+$: systemPrompt;
+
 	$: if (chatIdProp) {
 		navigateHandler();
 	}
@@ -1661,8 +1664,12 @@
 		chatInput?.focus();
 
 		saveSessionSelectedModels();
-
-		await sendMessage(history, userMessageId, { newChat: true });
+		
+		// Capture the current systemPrompt value before calling sendMessage
+		// This ensures we use the value that was set before submitPrompt was called
+		const currentSystemPromptForMessage = systemPrompt || '';
+		
+		await sendMessage(history, userMessageId, { newChat: true, systemPrompt: currentSystemPromptForMessage });
 	};
 
 	const sendMessage = async (
@@ -1672,12 +1679,14 @@
 			messages = null,
 			modelId = null,
 			modelIdx = null,
-			newChat = false
+			newChat = false,
+			systemPrompt: systemPromptParam = null
 		}: {
 			messages?: any[] | null;
 			modelId?: string | null;
 			modelIdx?: number | null;
 			newChat?: boolean;
+			systemPrompt?: string | null;
 		} = {}
 	) => {
 		if (autoScroll) {
@@ -1780,7 +1789,8 @@
 							: createMessagesList(_history, responseMessageId),
 						_history,
 						responseMessageId,
-						_chatId
+						_chatId,
+						systemPromptParam
 					);
 
 					if (chatEventEmitter) clearInterval(chatEventEmitter);
@@ -1835,7 +1845,7 @@
 		return features;
 	};
 
-	const sendMessageSocket = async (model, _messages, _history, responseMessageId, _chatId) => {
+	const sendMessageSocket = async (model, _messages, _history, responseMessageId, _chatId, systemPromptParam: string | null = null) => {
 		const responseMessage = _history.messages[responseMessageId];
 		const userMessage = _history.messages[responseMessage.parentId];
 
@@ -1891,14 +1901,11 @@
 		const foundModel = $models.find((m) => m.id === model.id);
 		const modelParams = foundModel?.params ?? {};
 		
-		// Get the current systemPrompt value (ensure we read the latest value from the bound variable)
-		const currentSystemPrompt = systemPrompt || '';
+		// Get the current systemPrompt value - use the parameter if provided, otherwise use the global variable
+		const currentSystemPrompt = systemPromptParam !== null ? systemPromptParam : (systemPrompt || '');
 		
 		// Trim systemPrompt from MessageInput to check if user provided a value
 		const trimmedSystemPrompt = currentSystemPrompt.trim();
-		
-		// Check if user provided a system prompt in the textarea (even if empty after trim)
-		const hasUserSystemPrompt = currentSystemPrompt.length > 0;
 		
 		// Use systemPrompt from MessageInput if provided, otherwise fall back to params, model params, or settings
 		const effectiveSystemPrompt = trimmedSystemPrompt || params?.system || modelParams?.system || $settings.system;
@@ -1995,9 +2002,10 @@
 					...foundModel,
 					params: {
 						...(modelParams ?? {}),
-						// Use the exact value from MessageInput if user provided one, otherwise use effectiveSystemPrompt
-						...(hasUserSystemPrompt ? { system: currentSystemPrompt } : effectiveSystemPrompt ? { system: effectiveSystemPrompt } : {})
+						// Use currentSystemPrompt if provided, otherwise use effectiveSystemPrompt
+						...(currentSystemPrompt && currentSystemPrompt.trim().length > 0 ? { system: currentSystemPrompt } : effectiveSystemPrompt ? { system: effectiveSystemPrompt } : {})
 					}
+
 				},
 
 				session_id: $socket?.id,
@@ -2586,7 +2594,7 @@
 										if (!$temporaryChatEnabled) {
 											saveDraft(data, $chatId);
 										}
-										if (data.systemPrompt !== undefined) {
+										if (data.systemPrompt !== '') {
 											systemPrompt = data.systemPrompt;
 										}
 									}}
@@ -2594,7 +2602,6 @@
 										clearDraft();
 										if (e.detail || files.length > 0) {
 											await tick();
-
 											submitPrompt(e.detail.replaceAll('\n\n', '\n'));
 										}
 									}}
