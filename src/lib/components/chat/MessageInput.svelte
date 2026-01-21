@@ -142,24 +142,30 @@ export let systemPrompt = '';
 		integrationsMenuCloseOnOutsideClick = true;
 	}
 
-$: onChange({
-		prompt,
-		files: files
-			.filter((file) => file.type !== 'image')
-			.map((file) => {
-				return {
-					...file,
-					user: undefined,
-					access_control: undefined
-				};
-			}),
-		selectedToolIds,
-		selectedFilterIds,
-		imageGenerationEnabled,
-		webSearchEnabled,
-		codeInterpreterEnabled,
-		systemPrompt
-	});
+	// Track changes to prompt and systemPrompt to trigger onChange when they change externally
+	$: prompt, systemPrompt;
+	
+	// Call onChange whenever any of the tracked values change
+	$: {
+		onChange({
+			prompt,
+			files: files
+				.filter((file) => file.type !== 'image')
+				.map((file) => {
+					return {
+						...file,
+						user: undefined,
+						access_control: undefined
+					};
+				}),
+			selectedToolIds,
+			selectedFilterIds,
+			imageGenerationEnabled,
+			webSearchEnabled,
+			codeInterpreterEnabled,
+			systemPrompt
+		});
+	}
 
 	// Show system prompt input when files are uploaded (all file types)
 	$: {
@@ -985,6 +991,27 @@ $: onChange({
 		dropzoneElement?.addEventListener('dragleave', onDragLeave);
 
 		await tools.set(await getTools(localStorage.token));
+		
+		// Trigger onChange on mount to ensure initial values are sent to parent
+		await tick();
+		onChange({
+			prompt,
+			files: files
+				.filter((file) => file.type !== 'image')
+				.map((file) => {
+					return {
+						...file,
+						user: undefined,
+						access_control: undefined
+					};
+				}),
+			selectedToolIds,
+			selectedFilterIds,
+			imageGenerationEnabled,
+			webSearchEnabled,
+			codeInterpreterEnabled,
+			systemPrompt
+		});
 	});
 
 	onDestroy(() => {
@@ -1289,7 +1316,6 @@ $: onChange({
 											on:click={() => {
 												showSystemPromptInput = false;
 												systemPromptDismissed = true;
-												systemPrompt = '';
 											}}
 											aria-label={$i18n.t('Hide system prompt')}
 										>

@@ -1015,6 +1015,7 @@ $: systemPrompt;
 
 		chatFiles = [];
 		params = {};
+		systemPrompt = '';
 
 		if ($page.url.searchParams.get('youtube')) {
 			await uploadWeb(`https://www.youtube.com/watch?v=${$page.url.searchParams.get('youtube')}`);
@@ -1116,6 +1117,7 @@ $: systemPrompt;
 				chatTitle.set(chatContent.title);
 
 				params = chatContent?.params ?? {};
+				systemPrompt = params?.system ?? '';
 				chatFiles = chatContent?.files ?? [];
 
 				autoScroll = true;
@@ -1561,6 +1563,10 @@ $: systemPrompt;
 	const submitPrompt = async (userPrompt, { _raw = false } = {}) => {
 		console.log('submitPrompt', userPrompt, $chatId);
 
+		// Capture the current systemPrompt value before calling sendMessage
+		// This ensures we use the value that was set before submitPrompt was called
+		const currentSystemPromptForMessage = systemPrompt || '';
+
 		const _selectedModels = selectedModels.map((modelId) =>
 			$models.map((m) => m.id).includes(modelId) ? modelId : ''
 		);
@@ -1665,10 +1671,6 @@ $: systemPrompt;
 
 		saveSessionSelectedModels();
 		
-		// Capture the current systemPrompt value before calling sendMessage
-		// This ensures we use the value that was set before submitPrompt was called
-		const currentSystemPromptForMessage = systemPrompt || '';
-		
 		await sendMessage(history, userMessageId, { newChat: true, systemPrompt: currentSystemPromptForMessage });
 	};
 
@@ -1689,6 +1691,8 @@ $: systemPrompt;
 			systemPrompt?: string | null;
 		} = {}
 	) => {
+
+		
 		if (autoScroll) {
 			scrollToBottom();
 		}
@@ -1782,6 +1786,7 @@ $: systemPrompt;
 					const chatEventEmitter = await getChatEventEmitter(model.id, _chatId);
 
 					scrollToBottom();
+
 					await sendMessageSocket(
 						model,
 						messages && messages.length > 0
@@ -1900,16 +1905,16 @@ $: systemPrompt;
 		// Get the model object and its params
 		const foundModel = $models.find((m) => m.id === model.id);
 		const modelParams = foundModel?.params ?? {};
-		
+
 		// Get the current systemPrompt value - use the parameter if provided, otherwise use the global variable
-		const currentSystemPrompt = systemPromptParam !== null ? systemPromptParam : (systemPrompt || '');
+		const currentSystemPrompt = systemPromptParam !== null ? systemPromptParam : '';
 		
 		// Trim systemPrompt from MessageInput to check if user provided a value
 		const trimmedSystemPrompt = currentSystemPrompt.trim();
 		
 		// Use systemPrompt from MessageInput if provided, otherwise fall back to params, model params, or settings
 		const effectiveSystemPrompt = trimmedSystemPrompt || params?.system || modelParams?.system || $settings.system;
-		
+
 		let messages = [
 			effectiveSystemPrompt
 				? {
@@ -1979,6 +1984,7 @@ $: systemPrompt;
 				params: {
 					...$settings?.params,
 					...params,
+					system: currentSystemPrompt,
 					stop:
 						(params?.stop ?? $settings?.params?.stop ?? undefined)
 							? (params?.stop.split(',').map((token) => token.trim()) ?? $settings.params.stop).map(
@@ -2594,9 +2600,12 @@ $: systemPrompt;
 										if (!$temporaryChatEnabled) {
 											saveDraft(data, $chatId);
 										}
-										if (data.systemPrompt !== '') {
+										// Always update systemPrompt if it's provided in data, even if it's an empty string
+										if (data.systemPrompt !== undefined || data.systemPrompt !== '') {
 											systemPrompt = data.systemPrompt;
+											params = { ...params, system: data.systemPrompt };
 										}
+										return;
 									}}
 									on:submit={async (e) => {
 										clearDraft();
@@ -2639,8 +2648,10 @@ $: systemPrompt;
 										if (!$temporaryChatEnabled) {
 											saveDraft(data);
 										}
-										if (data.systemPrompt !== undefined) {
+										// Always update systemPrompt if it's provided in data, even if it's an empty string
+										if (data.systemPrompt !== undefined || data.systemPrompt !== '') {
 											systemPrompt = data.systemPrompt;
+											params = { ...params, system: data.systemPrompt };
 										}
 									}}
 									on:submit={async (e) => {
