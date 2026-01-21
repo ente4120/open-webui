@@ -31,42 +31,55 @@ Added a user-accessible System Prompt interface that appears when files are uplo
 ## 2. Knowledge Workspace Search Optimization
 
 ### Overview
-Optimized the Knowledge workspace search functionality by implementing a debounce mechanism to prevent API requests on every keystroke.
+Optimized the Knowledge workspace search functionality by implementing two key improvements:
+1. A debounce mechanism to prevent API requests on every keystroke
+2. A "Load More" button to replace automatic data loading, giving users control over when additional records are fetched
 
 ### Features
 - **Debounce Delay**: 500ms delay before triggering the search API request
 - **Performance Improvement**: Reduces unnecessary API calls while the user is typing
 - **Better User Experience**: Smoother search experience with reduced server load
+- **Load More Button**: Manual control over data loading instead of automatic loading of all records
+- **Smart Loading Detection**: Automatically hides the "Load More" button when all records have been loaded
+- **Loading State**: Shows a spinner in the button while loading additional records
 
 ### Technical Details
 - Debounce mechanism implemented with a 500ms timeout
 - Search API is only called after the user stops typing for 500ms
 - Prevents excessive API requests during rapid typing
+- Replaced automatic infinite scroll loading with a manual "Load More" button
+- The button is conditionally rendered based on `allItemsLoaded` state
+- Loading state is tracked with `itemsLoading` flag to prevent multiple simultaneous requests
+- Button automatically hides when `allItemsLoaded` is `true` or when `items.length >= total`
 
 ### Usage
 1. Navigate to the Knowledge workspace
 2. Start typing in the search field
 3. The search will automatically trigger 500ms after you stop typing
+4. If there are more records available, a "Load More" button will appear at the bottom of the list
+5. Click the "Load More" button to fetch additional records
+6. The button will automatically hide when all records have been loaded
 
 ### Additional Considerations
 
-**Known Limitation - Automatic Data Loading**
+**Previous Limitation - Automatic Data Loading (Resolved)**
 
-There is an additional issue that has not been implemented but is important to note: the system may have a large number of records. In the current implementation, if there are 100 records and 20 records are loaded per request, this requires 6 API requests (5 requests for 20 records each, plus an additional request to verify there are no more records).
+Previously, the system had an issue with automatic loading of all records. If there were 100 records and 20 records were loaded per request, this would require 6 consecutive API requests without the ability to stop them. This led to two problems:
 
-This leads to two problems:
+1. **Automatic Loading of All Records**: Automatic loading of all records without user control
+2. **Mandatory Full Data Load**: The system was required to load all data automatically
 
-1. **Automatic Loading of All Records**: There is automatic loading of all records, meaning 6 consecutive requests without the ability to stop them.
+**Solution Implemented:**
 
-2. **Mandatory Full Data Load**: The system is required to load all data and cannot load a specific page that the user might want.
+The automatic loading has been replaced with a "Load More" button that:
+- Gives users full control over when additional data is fetched
+- Prevents unnecessary API requests
+- Improves performance when dealing with large datasets
+- Automatically hides when all records are loaded
 
-**Potential Solutions:**
+**Future Enhancement:**
 
-1. **Prevent Automatic Loading**: Disable automatic loading of additional records and add a "Load More" button, allowing users to control when more data is fetched.
-
-2. **Pagination Mechanism**: Implement a pagination system that allows users to navigate between specific pages of results, rather than loading all records automatically.
-
-These improvements would provide better control over data loading and improve performance when dealing with large datasets.
+A pagination mechanism could be implemented in the future to allow users to navigate between specific pages of results, rather than loading records sequentially.
 
 ---
 
@@ -118,7 +131,10 @@ The existing design and styling of components have been preserved. All new UI el
 
 These three features enhance the user experience by:
 1. **Improving chat customization** through accessible System Prompt management
-2. **Optimizing performance** in the Knowledge workspace with debounced search
+2. **Optimizing performance** in the Knowledge workspace with debounced search and manual "Load More" functionality
 3. **Enhancing organization** with a comprehensive Chat Management interface
 
-All features are fully integrated into the existing codebase and maintain compatibility with current functionality.
+All features are fully integrated into the existing codebase and maintain compatibility with current functionality. The Knowledge workspace improvements specifically address performance concerns by:
+- Reducing API calls through debounced search (500ms delay)
+- Giving users control over data loading with a "Load More" button instead of automatic loading
+- Preventing unnecessary server requests and improving overall application performance
