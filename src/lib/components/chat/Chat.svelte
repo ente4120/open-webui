@@ -161,8 +161,11 @@
 	let params = {};
 	let systemPrompt = '';
 
-// Reactive statement to ensure systemPrompt updates are tracked
-$: systemPrompt;
+	// Reactive statement to ensure systemPrompt updates are tracked
+	$: systemPrompt;
+	
+	// Reactive statement to track params changes for reactivity
+	$: params;
 
 	$: if (chatIdProp) {
 		navigateHandler();
@@ -1116,8 +1119,15 @@ $: systemPrompt;
 
 				chatTitle.set(chatContent.title);
 
-				params = chatContent?.params ?? {};
-				systemPrompt = params?.system ?? '';
+				// Load params and create new object to trigger reactivity
+				const loadedParams = chatContent?.params ?? {};
+				// Create new object with spread operator to ensure reactivity
+				params = { ...loadedParams };
+				// Ensure params.system exists for Chat Controls binding
+				if (params.system === undefined) {
+					params.system = '';
+				}
+				systemPrompt = params.system;
 				chatFiles = chatContent?.files ?? [];
 
 				autoScroll = true;
@@ -2628,7 +2638,7 @@ $: systemPrompt;
 											saveDraft(data, $chatId);
 										}
 										// Always update systemPrompt if it's provided in data, even if it's an empty string
-										if (data.systemPrompt !== undefined || data.systemPrompt !== '') {
+										if (data.systemPrompt !== undefined && data.systemPrompt !== '') {
 											systemPrompt = data.systemPrompt;
 											params = { ...params, system: data.systemPrompt };
 										}
@@ -2676,7 +2686,7 @@ $: systemPrompt;
 											saveDraft(data);
 										}
 										// Always update systemPrompt if it's provided in data, even if it's an empty string
-										if (data.systemPrompt !== undefined || data.systemPrompt !== '') {
+										if (data.systemPrompt !== undefined && data.systemPrompt !== '') {
 											systemPrompt = data.systemPrompt;
 											params = { ...params, system: data.systemPrompt };
 										}
