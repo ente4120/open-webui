@@ -26,7 +26,6 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import XMark from '../icons/XMark.svelte';
 	import ViewSelector from './common/ViewSelector.svelte';
-	import Loader from '../common/Loader.svelte';
 
 	let loaded = false;
 	let showDeleteConfirm = false;
@@ -158,16 +157,18 @@
 			total = res.total;
 			const pageItems = res.items;
 
-			if ((pageItems ?? []).length === 0) {
-				allItemsLoaded = true;
-			} else {
-				allItemsLoaded = false;
-			}
-
 			if (items) {
 				items = [...items, ...pageItems];
 			} else {
 				items = pageItems;
+			}
+
+			// Check if all items are loaded
+			// If no items returned in this page, or we've loaded all items (items.length >= total)
+			if ((pageItems ?? []).length === 0 || (total !== null && items.length >= total)) {
+				allItemsLoaded = true;
+			} else {
+				allItemsLoaded = false;
 			}
 			
 			// Mark that we've loaded at least the first page
@@ -411,18 +412,22 @@
 				</div>
 
 				{#if !allItemsLoaded}
-					<Loader
-						on:visible={(e) => {
-							if (!itemsLoading) {
-								loadMoreItems();
-							}
-						}}
-					>
-						<div class="w-full flex justify-center py-4 text-xs animate-pulse items-center gap-2">
-							<Spinner className=" size-4" />
-							<div class=" ">{$i18n.t('Loading...')}</div>
-						</div>
-					</Loader>
+					<div class="w-full flex justify-center py-4">
+						<button
+							class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+							on:click={() => {
+								if (!itemsLoading) {
+									loadMoreItems();
+								}
+							}}
+							disabled={itemsLoading}
+						>
+							{#if itemsLoading}
+								<Spinner className=" size-4" />
+							{/if}
+							<div>{$i18n.t('Load More')}</div>
+						</button>
+					</div>
 				{/if}
 			{:else}
 				<div class=" w-full h-full flex flex-col justify-center items-center my-16 mb-24">
