@@ -1201,11 +1201,14 @@ $: systemPrompt;
 
 		if ($chatId == _chatId) {
 			if (!$temporaryChatEnabled) {
+				// Ensure params.system is synced with systemPrompt before saving
+				const saveParams = { ...params, system: systemPrompt || params.system || '' };
+				
 				chat = await updateChatById(localStorage.token, _chatId, {
 					models: selectedModels,
 					messages: messages,
 					history: history,
-					params: params,
+					params: saveParams,
 					files: chatFiles
 				});
 
@@ -1256,11 +1259,14 @@ $: systemPrompt;
 
 		if ($chatId == _chatId) {
 			if (!$temporaryChatEnabled) {
+				// Ensure params.system is synced with systemPrompt before saving
+				const saveParams = { ...params, system: systemPrompt || params.system || '' };
+				
 				chat = await updateChatById(localStorage.token, _chatId, {
 					models: selectedModels,
 					messages: messages,
 					history: history,
-					params: params,
+					params: saveParams,
 					files: chatFiles
 				});
 
@@ -1743,6 +1749,11 @@ $: systemPrompt;
 			}
 		}
 		history = history;
+
+		// Update params.system if it's different from systemPrompt
+		if(!params || (params?.system !== systemPromptParam && systemPromptParam !== null)) {
+			params = { ...params, system: systemPromptParam };
+		}
 
 		// Create new chat if newChat is true and first user message
 		if (newChat && _history.messages[_history.currentId].parentId === null) {
@@ -2316,6 +2327,9 @@ $: systemPrompt;
 	const initChatHandler = async (history) => {
 		let _chatId = $chatId;
 
+		// Ensure params.system is synced with systemPrompt before creating new chat
+		const saveParams = { ...params, system: systemPrompt || params.system || '' };
+		
 		if (!$temporaryChatEnabled) {
 			chat = await createNewChat(
 				localStorage.token,
@@ -2324,7 +2338,7 @@ $: systemPrompt;
 					title: $i18n.t('New Chat'),
 					models: selectedModels,
 					system: $settings.system ?? undefined,
-					params: params,
+					params: saveParams,
 					history: history,
 					messages: createMessagesList(history, history.currentId),
 					tags: [],
@@ -2332,6 +2346,9 @@ $: systemPrompt;
 				},
 				$selectedFolder?.id
 			);
+
+			// Validate chat params updated correctly
+			params = saveParams;
 
 			_chatId = chat.id;
 			await chatId.set(_chatId);
@@ -2356,11 +2373,14 @@ $: systemPrompt;
 	const saveChatHandler = async (_chatId, history) => {
 		if ($chatId == _chatId) {
 			if (!$temporaryChatEnabled) {
+				// Ensure params.system is synced with systemPrompt before saving
+				const saveParams = { ...params, system: systemPrompt || params.system || '' };
+				
 				chat = await updateChatById(localStorage.token, _chatId, {
 					models: selectedModels,
 					history: history,
 					messages: createMessagesList(history, history.currentId),
-					params: params,
+					params: saveParams,
 					files: chatFiles
 				});
 				currentChatPage.set(1);
@@ -2508,12 +2528,16 @@ $: systemPrompt;
 								const title =
 									messages.find((m) => m.role === 'user')?.content ?? $i18n.t('New Chat');
 
+								// Ensure params.system is synced with systemPrompt before saving
+								const saveParams = { ...params, system: systemPrompt || params.system || '' };
+
 								const savedChat = await createNewChat(
 									localStorage.token,
 									{
 										id: uuidv4(),
 										title: title.length > 50 ? `${title.slice(0, 50)}...` : title,
 										models: selectedModels,
+										params: saveParams,
 										history: history,
 										messages: messages,
 										timestamp: Date.now()
