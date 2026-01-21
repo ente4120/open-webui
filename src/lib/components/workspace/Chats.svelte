@@ -18,7 +18,6 @@
 		getAllTags
 	} from '$lib/apis/chats';
 	import { goto } from '$app/navigation';
-	import { capitalizeFirstLetter } from '$lib/utils';
 
 	import Badge from '../common/Badge.svelte';
 	import Search from '../icons/Search.svelte';
@@ -30,19 +29,31 @@
 	import Tag from '../icons/Tag.svelte';
 	import ChevronDown from '../icons/ChevronDown.svelte';
 
+	// Type definitions
+	type ChatData = {
+		id: string;
+		title?: string;
+		updated_at?: number;
+		models?: string[];
+		tags?: string[];
+		[key: string]: unknown;
+	};
+
+	type TagItem = string | { name?: string; [key: string]: unknown };
+
 let loaded = false;
 let query = '';
 let sortBy = 'date'; // 'date', 'model', 'tag'
 let sortOrder = 'desc'; // 'asc', 'desc'
 
-let chats = [];
-let allChatsData = []; // Store full chat data with models and tags
-let allTags = [];
-let filteredChats = [];
+let chats: ChatData[] = [];
+let allChatsData: ChatData[] = []; // Store full chat data with models and tags
+let allTags: TagItem[] = [];
+let filteredChats: ChatData[] = [];
 
-let editingChatId = null;
+let editingChatId: string | null = null;
 let editingTitle = '';
-let editingTagChatId = null;
+let editingTagChatId: string | null = null;
 let selectedTagsForChat: string[] = [];
 let tagDropdownOpen = false;
 let sortDropdownOpen = false;
@@ -59,10 +70,14 @@ const SEARCH_DEBOUNCE = 500;
 		searchDebounceTimer = setTimeout(callback, delay);
 	};
 
-	const normalizeTags = (tagsResponse: unknown) => {
+	const normalizeTags = (tagsResponse: unknown): string[] => {
 		return Array.isArray(tagsResponse)
-			? tagsResponse.map((t) => (typeof t === 'string' ? t : (t as { name?: string })?.name || t)).filter(Boolean)
+			? tagsResponse.map((t) => (typeof t === 'string' ? t : (t as { name?: string })?.name || t)).filter(Boolean) as string[]
 			: [];
+	};
+
+	const getTagValue = (tag: TagItem): string => {
+		return typeof tag === 'string' ? tag : (tag?.name || String(tag));
 	};
 
 	const init = async () => {
@@ -77,8 +92,8 @@ const SEARCH_DEBOUNCE = 500;
 			allTags = tagsList || [];
 
 			// Enrich chats in parallel
-			const enriched = await Promise.all(
-				chats.map(async (chat) => {
+			const enriched: ChatData[] = await Promise.all(
+				chats.map(async (chat: ChatData) => {
 					try {
 						const [fullChat, tagsResponse] = await Promise.all([
 							getChatById(localStorage.token, chat.id),
@@ -86,7 +101,7 @@ const SEARCH_DEBOUNCE = 500;
 						]);
 
 						const tags = normalizeTags(tagsResponse);
-						const models = fullChat?.chat?.models
+						const models: string[] = fullChat?.chat?.models
 							? Array.isArray(fullChat.chat.models)
 								? fullChat.chat.models
 								: [fullChat.chat.models]
@@ -97,7 +112,7 @@ const SEARCH_DEBOUNCE = 500;
 							models,
 							tags,
 							updated_at: chat.updated_at || fullChat?.updated_at || 0
-						};
+						} as ChatData;
 					} catch (e) {
 						console.error(`Error loading chat ${chat.id}:`, e);
 						return {
@@ -105,7 +120,7 @@ const SEARCH_DEBOUNCE = 500;
 							models: [],
 							tags: [],
 							updated_at: chat.updated_at || 0
-						};
+						} as ChatData;
 					}
 				})
 			);
@@ -120,10 +135,11 @@ const SEARCH_DEBOUNCE = 500;
 
 	const applyFiltersAndSort = () => {
 		// Filter by query
-		let filtered = allChatsData;
+		let filtered: ChatData[] = allChatsData;
+		// Using trim to avoid empty strings
 		if (query.trim()) {
 			const lowerQuery = query.toLowerCase();
-			filtered = allChatsData.filter((chat) => {
+			filtered = allChatsData.filter((chat: ChatData) => {
 				const title = (chat.title || '').toLowerCase();
 				const modelNames = (chat.models || []).join(' ').toLowerCase();
 				const tags = (chat.tags || []).join(' ').toLowerCase();
@@ -132,7 +148,7 @@ const SEARCH_DEBOUNCE = 500;
 		}
 
 		// Sort
-		filtered = [...filtered].sort((a, b) => {
+		filtered = [...filtered].sort((a: ChatData, b: ChatData) => {
 			let comparison = 0;
 			
 			if (sortBy === 'date') {
@@ -142,6 +158,7 @@ const SEARCH_DEBOUNCE = 500;
 				const bModel = (b.models || [])[0] || '';
 				comparison = aModel.localeCompare(bModel);
 			} else if (sortBy === 'tag') {
+				// Sort tags alphabetically by their first tag
 				const aTag = (a.tags || [])[0] || '';
 				const bTag = (b.tags || [])[0] || '';
 				comparison = aTag.localeCompare(bTag);
@@ -165,7 +182,7 @@ const SEARCH_DEBOUNCE = 500;
 		applyFiltersAndSort();
 	}
 
-	const startEditTitle = (chat) => {
+	const startEditTitle = (chat: ChatData) => {
 		editingChatId = chat.id;
 		editingTitle = chat.title || '';
 	};
@@ -175,7 +192,7 @@ const SEARCH_DEBOUNCE = 500;
 		editingTitle = '';
 	};
 
-	const saveTitle = async (chatId) => {
+	const saveTitle = async (chatId: string) => {
 		if (editingTitle.trim() === '') {
 			toast.error($i18n.t('Title cannot be empty'));
 			return;
@@ -187,7 +204,7 @@ const SEARCH_DEBOUNCE = 500;
 			});
 
 			// Update local data
-			const chatIndex = allChatsData.findIndex(c => c.id === chatId);
+			const chatIndex = allChatsData.findIndex((c: ChatData) => c.id === chatId);
 			if (chatIndex !== -1) {
 				allChatsData[chatIndex].title = editingTitle.trim();
 			}
@@ -202,52 +219,46 @@ const SEARCH_DEBOUNCE = 500;
 		}
 	};
 
-	const startEditTag = (chat) => {
+	const startEditTag = (chat: ChatData) => {
 		editingTagChatId = chat.id;
-	selectedTagsForChat = (chat.tags || [])
-		.map((t) => (typeof t === 'string' ? t : t?.name || t))
-		.filter(Boolean);
+		selectedTagsForChat = [...(chat.tags || [])];
 	};
 
 	const cancelEditTag = () => {
 		editingTagChatId = null;
-	selectedTagsForChat = [];
+		selectedTagsForChat = [];
 	};
 
-	const saveTag = async (chatId) => {
+	const saveTag = async (chatId: string) => {
 		try {
-			const chat = allChatsData.find(c => c.id === chatId);
+			const chat = allChatsData.find((c: ChatData) => c.id === chatId);
 			if (!chat) return;
 
-			const currentTags = (chat.tags || [])
-				.map((t) => (typeof t === 'string' ? t : t?.name || t))
-				.filter(Boolean);
+			const currentTags: string[] = [...(chat.tags || [])];
+			// Normalize selected tags: trim, filter empty, deduplicate
 			const newTags = Array.from(
 				new Set(
-					(selectedTagsForChat || [])
-						.map((t) => t?.trim())
-						.filter((t) => t && t.length > 0)
+					selectedTagsForChat
+						.map((t: string) => t?.trim())
+						.filter((t: string) => t && t.length > 0)
 				)
 			);
 
 			// Determine which tags to remove and which to add
-			const tagsToRemove = currentTags.filter((tag) => !newTags.includes(tag));
-			const tagsToAdd = newTags.filter((tag) => !currentTags.includes(tag));
+			const tagsToRemove = currentTags.filter((tag: string) => !newTags.includes(tag));
+			const tagsToAdd = newTags.filter((tag: string) => !currentTags.includes(tag));
 
-			// Remove deselected tags
-			for (const tag of tagsToRemove) {
-				await deleteTagById(localStorage.token, chatId, tag).catch(() => {});
-			}
-
-			// Add newly selected tags
-			for (const tag of tagsToAdd) {
-				await addTagById(localStorage.token, chatId, tag);
-			}
+			// Execute add/remove operations in parallel for better performance
+			// The API has no support for batch operations, so we can execute them in parallel
+			await Promise.all([
+				...tagsToRemove.map((tag: string) => deleteTagById(localStorage.token, chatId, tag).catch(() => {})),
+				...tagsToAdd.map((tag: string) => addTagById(localStorage.token, chatId, tag))
+			]);
 
 			// Reload tags from server to ensure consistency
 			const updatedTagsResponse = (await getTagsById(localStorage.token, chatId)) || [];
 			const updatedTags = Array.isArray(updatedTagsResponse)
-				? updatedTagsResponse.map((t) => (typeof t === 'string' ? t : t?.name || t)).filter(Boolean)
+				? updatedTagsResponse.map((t: unknown) => (typeof t === 'string' ? t : (t as { name?: string })?.name || t)).filter(Boolean) as string[]
 				: [];
 			chat.tags = updatedTags;
 
@@ -458,10 +469,18 @@ const SEARCH_DEBOUNCE = 500;
 		{#if filteredChats.length > 0}
 			<div class="my-2 px-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
 				{#each filteredChats as chat}
-					<button
+					<div
 						class="flex space-x-4 cursor-pointer text-left w-full px-3 py-2.5 dark:hover:bg-gray-850/50 hover:bg-gray-50 transition rounded-2xl"
+						role="button"
+						tabindex="0"
 						on:click={() => {
 							if (editingChatId !== chat.id && editingTagChatId !== chat.id) {
+								goto(`/c/${chat.id}`);
+							}
+						}}
+						on:keydown={(e) => {
+							if ((e.key === 'Enter' || e.key === ' ') && editingChatId !== chat.id && editingTagChatId !== chat.id) {
+								e.preventDefault();
 								goto(`/c/${chat.id}`);
 							}
 						}}
@@ -537,24 +556,22 @@ const SEARCH_DEBOUNCE = 500;
 										<div class="flex flex-wrap gap-2">
 											{#each allTags as tag}
 												{#if tag}
+													{@const tagValue = getTagValue(tag)}
 													<button
 														class={`text-xs px-2 py-1 rounded-lg border transition ${
-															selectedTagsForChat.includes(
-																typeof tag === 'string' ? tag : (tag?.name || tag)
-															)
+															selectedTagsForChat.includes(tagValue)
 																? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600'
 																: 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
 														}`}
 														on:click|stopPropagation={() => {
-															const val = typeof tag === 'string' ? tag : (tag?.name || tag);
-															if (selectedTagsForChat.includes(val)) {
-																selectedTagsForChat = selectedTagsForChat.filter((t) => t !== val);
+															if (selectedTagsForChat.includes(tagValue)) {
+																selectedTagsForChat = selectedTagsForChat.filter((t: string) => t !== tagValue);
 															} else {
-																selectedTagsForChat = [...selectedTagsForChat, val];
+																selectedTagsForChat = [...selectedTagsForChat, tagValue];
 															}
 														}}
 													>
-														{typeof tag === 'string' ? tag : (tag?.name || tag)}
+														{tagValue}
 													</button>
 												{/if}
 											{/each}
@@ -600,10 +617,10 @@ const SEARCH_DEBOUNCE = 500;
 							</div>
 
 							<div class="text-xs text-gray-500 dark:text-gray-400">
-								{$i18n.t('Updated')} {dayjs(chat.updated_at * 1000).fromNow()}
+								{$i18n.t('Updated')} {dayjs((chat.updated_at || 0) * 1000).fromNow()}
 							</div>
 						</div>
-					</button>
+					</div>
 				{/each}
 			</div>
 		{:else}
