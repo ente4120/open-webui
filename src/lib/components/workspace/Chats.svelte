@@ -55,7 +55,6 @@ let editingChatId: string | null = null;
 let editingTitle = '';
 let editingTagChatId: string | null = null;
 let selectedTagsForChat: string[] = [];
-let tagDropdownOpen = false;
 let sortDropdownOpen = false;
 let sortOrderDropdownOpen = false;
 
