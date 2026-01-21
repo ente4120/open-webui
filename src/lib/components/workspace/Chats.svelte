@@ -294,12 +294,14 @@ const SEARCH_DEBOUNCE = 500;
 </svelte:head>
 
 {#if loaded}
+	<!-- Page Header: Displays "Chats" title and total count of filtered chats -->
 	<div class="flex flex-col gap-1 px-1 mt-1.5 mb-3">
 		<div class="flex justify-between items-center">
 			<div class="flex items-center md:self-center text-xl font-medium px-0.5 gap-2 shrink-0">
 				<div>
 					{$i18n.t('Chats')}
 				</div>
+				<!-- Display count of filtered chats -->
 				<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
 					{filteredChats.length}
 				</div>
@@ -307,19 +309,24 @@ const SEARCH_DEBOUNCE = 500;
 		</div>
 	</div>
 
+	<!-- Main Container: White/dark card containing search, filters, and chat list -->
 	<div
 		class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30"
 	>
+		<!-- Search Bar: Input field with search icon and clear button -->
 		<div class="flex w-full space-x-2 py-0.5 px-3.5 pb-2">
 			<div class="flex flex-1">
+				<!-- Search icon on the left -->
 				<div class="self-center ml-1 mr-3">
 					<Search className="size-3.5" />
 				</div>
+				<!-- Search input field with debounced filtering -->
 				<input
 					class="w-full text-sm py-1 rounded-r-xl outline-hidden bg-transparent"
 					bind:value={query}
 					placeholder={$i18n.t('Search Chats')}
 				/>
+				<!-- Clear search button (only visible when query has value) -->
 				{#if query}
 					<div class="self-center pl-1.5 translate-y-[0.5px] rounded-l-xl bg-transparent">
 						<button
@@ -335,10 +342,11 @@ const SEARCH_DEBOUNCE = 500;
 			</div>
 		</div>
 
-		<!-- Sort controls styled like Tools dropdown -->
+		<!-- Sort Controls: Two dropdowns for sorting chats (field and order) -->
 		<div class="px-3.5 pb-2 flex gap-3 flex-wrap items-center">
 			<div class="text-xs text-gray-500 dark:text-gray-400">{$i18n.t('Sort by')}:</div>
 
+			<!-- Sort Field Dropdown: Selects what to sort by (Date, Model, or Tag) -->
 			<div
 				class="relative"
 				role="group"
@@ -350,6 +358,7 @@ const SEARCH_DEBOUNCE = 500;
 					}
 				}}
 			>
+				<!-- Dropdown trigger button showing current sort field -->
 				<button
 					class="relative w-full flex items-center gap-0.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-850 rounded-xl text-sm text-left"
 					aria-expanded={sortDropdownOpen}
@@ -363,17 +372,20 @@ const SEARCH_DEBOUNCE = 500;
 						}
 					}}
 				>
+					<!-- Display current sort field selection -->
 					<span class="inline-flex h-input px-0.5 w-full outline-hidden bg-transparent truncate">
 						{sortBy === 'date' ? $i18n.t('Date') : sortBy === 'model' ? $i18n.t('Model') : $i18n.t('Tag')}
 					</span>
 					<ChevronDown className="size-3.5 transition-transform" strokeWidth="2.5" />
 				</button>
 
+				<!-- Dropdown menu with sort field options -->
 				{#if sortDropdownOpen}
 					<div
 						class="absolute mt-1 min-w-[170px] rounded-2xl p-1 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-850 shadow-lg z-40"
 						on:click|stopPropagation
 					>
+						<!-- List of sort field options: Date, Model, Tag -->
 						{#each ['date', 'model', 'tag'] as option}
 							<button
 								role="option"
@@ -391,6 +403,7 @@ const SEARCH_DEBOUNCE = 500;
 								<span class="flex-1 text-left">
 									{option === 'date' ? $i18n.t('Date') : option === 'model' ? $i18n.t('Model') : $i18n.t('Tag')}
 								</span>
+								<!-- Checkmark icon for selected option -->
 								{#if sortBy === option}
 									<div class="ml-auto">
 										<Check />
@@ -402,6 +415,7 @@ const SEARCH_DEBOUNCE = 500;
 				{/if}
 			</div>
 
+			<!-- Sort Order Dropdown: Selects sort direction (Ascending or Descending) -->
 			<div
 				class="relative"
 				role="group"
@@ -413,6 +427,7 @@ const SEARCH_DEBOUNCE = 500;
 					}
 				}}
 			>
+				<!-- Dropdown trigger button showing current sort order -->
 				<button
 					class="relative w-full flex items-center gap-0.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-850 rounded-xl text-sm text-left"
 					aria-expanded={sortOrderDropdownOpen}
@@ -426,17 +441,20 @@ const SEARCH_DEBOUNCE = 500;
 						}
 					}}
 				>
+					<!-- Display current sort order selection -->
 					<span class="inline-flex h-input px-0.5 w-full outline-hidden bg-transparent truncate">
 						{sortOrder === 'asc' ? $i18n.t('Ascending') : $i18n.t('Descending')}
 					</span>
 					<ChevronDown className="size-3.5 transition-transform" strokeWidth="2.5" />
 				</button>
 
+				<!-- Dropdown menu with sort order options -->
 				{#if sortOrderDropdownOpen}
 					<div
 						class="absolute mt-1 min-w-[170px] rounded-2xl p-1 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-850 shadow-lg z-40"
 						on:click|stopPropagation
 					>
+						<!-- List of sort order options: Ascending, Descending -->
 						{#each ['asc', 'desc'] as order}
 							<button
 								role="option"
@@ -454,6 +472,7 @@ const SEARCH_DEBOUNCE = 500;
 								<span class="flex-1 text-left">
 									{order === 'asc' ? $i18n.t('Ascending') : $i18n.t('Descending')}
 								</span>
+								<!-- Checkmark icon for selected option -->
 								{#if sortOrder === order}
 									<div class="ml-auto">
 										<Check />
@@ -466,8 +485,10 @@ const SEARCH_DEBOUNCE = 500;
 			</div>
 		</div>
 
+		<!-- Chat List -->
 		{#if filteredChats.length > 0}
 			<div class="my-2 px-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
+				<!-- Chat Item -->
 				{#each filteredChats as chat}
 					<div
 						class="flex space-x-4 cursor-pointer text-left w-full px-3 py-2.5 dark:hover:bg-gray-850/50 hover:bg-gray-50 transition rounded-2xl"
@@ -479,16 +500,18 @@ const SEARCH_DEBOUNCE = 500;
 							}
 						}}
 						on:keydown={(e) => {
-							if ((e.key === 'Enter' || e.key === ' ') && editingChatId !== chat.id && editingTagChatId !== chat.id) {
+							if ((e.key === 'Enter') && editingChatId !== chat.id && editingTagChatId !== chat.id) {
 								e.preventDefault();
 								goto(`/c/${chat.id}`);
 							}
 						}}
 					>
 						<div class="w-full">
+							<!-- Chat Title Section: Display or edit chat title -->
 							<div class="flex items-center justify-between mb-2">
 								<div class="flex-1 min-w-0">
 									{#if editingChatId === chat.id}
+										<!-- Title Edit Mode: Input field with save/cancel buttons -->
 										<div class="flex items-center gap-2">
 											<input
 												class="flex-1 text-sm font-medium px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent"
@@ -503,12 +526,14 @@ const SEARCH_DEBOUNCE = 500;
 												on:click|stopPropagation
 												autofocus
 											/>
+											<!-- Save title button -->
 											<button
 												class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
 												on:click|stopPropagation={() => saveTitle(chat.id)}
 											>
 												<Check className="size-4" />
 											</button>
+											<!-- Cancel title edit button -->
 											<button
 												class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
 												on:click|stopPropagation={() => cancelEditTitle()}
@@ -517,6 +542,7 @@ const SEARCH_DEBOUNCE = 500;
 											</button>
 										</div>
 									{:else}
+										<!-- Title Display Mode: Shows chat title with tooltip -->
 										<Tooltip content={chat.title || $i18n.t('New Chat')}>
 											<div class="text-sm font-medium line-clamp-1">
 												{chat.title || $i18n.t('New Chat')}
@@ -524,6 +550,7 @@ const SEARCH_DEBOUNCE = 500;
 										</Tooltip>
 									{/if}
 								</div>
+								<!-- Edit title button (only shown when not in edit mode) -->
 								{#if editingChatId !== chat.id}
 									<button
 										class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
@@ -534,11 +561,13 @@ const SEARCH_DEBOUNCE = 500;
 								{/if}
 							</div>
 
+							<!-- Model Display Section: Shows model badges used in this chat -->
 							<div class="flex items-center gap-2 mb-2">
 								<div class="text-xs text-gray-500 dark:text-gray-400">
 									{$i18n.t('Model')}:
 								</div>
 								{#if (chat.models || []).length > 0}
+									<!-- Display model badges for each model used in the chat -->
 									{#each chat.models as modelId}
 										<Badge type="info" content={getModelName(modelId)} />
 									{/each}
@@ -547,16 +576,20 @@ const SEARCH_DEBOUNCE = 500;
 								{/if}
 							</div>
 
+							<!-- Tag Section: Display or edit tags for the chat -->
 							<div class="flex items-center gap-2 mb-2">
 								<div class="text-xs text-gray-500 dark:text-gray-400">
 									{$i18n.t('Tag')}:
 								</div>
 								{#if editingTagChatId === chat.id}
+									<!-- Tag Edit Mode: Multi-select tag picker with action buttons -->
 									<div class="flex flex-col gap-2 flex-1">
+										<!-- Tag selection buttons: Clickable pills showing all available tags -->
 										<div class="flex flex-wrap gap-2">
 											{#each allTags as tag}
 												{#if tag}
 													{@const tagValue = getTagValue(tag)}
+													<!-- Tag pill button: Toggles selection on click -->
 													<button
 														class={`text-xs px-2 py-1 rounded-lg border transition ${
 															selectedTagsForChat.includes(tagValue)
@@ -576,7 +609,9 @@ const SEARCH_DEBOUNCE = 500;
 												{/if}
 											{/each}
 										</div>
+										<!-- Tag edit action buttons: Clear, Save, Cancel -->
 										<div class="flex gap-2 items-center">
+											<!-- Clear all selected tags button -->
 											<button
 												class="text-xs px-2 py-1 rounded-lg border border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
 												on:click|stopPropagation={() => {
@@ -585,12 +620,14 @@ const SEARCH_DEBOUNCE = 500;
 											>
 												{$i18n.t('Clear')}
 											</button>
+											<!-- Save tags button -->
 											<button
 												class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
 												on:click|stopPropagation={() => saveTag(chat.id)}
 											>
 												<Check className="size-4" />
 											</button>
+											<!-- Cancel tag edit button -->
 											<button
 												class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
 												on:click|stopPropagation={() => cancelEditTag()}
@@ -600,6 +637,7 @@ const SEARCH_DEBOUNCE = 500;
 										</div>
 									</div>
 								{:else}
+									<!-- Tag Display Mode: Shows current tags as badges -->
 									{#if (chat.tags || []).length > 0}
 										{#each chat.tags as tag}
 											<Badge type="success" content={tag} />
@@ -607,6 +645,7 @@ const SEARCH_DEBOUNCE = 500;
 									{:else}
 										<span class="text-xs text-gray-400">{$i18n.t('No tag')}</span>
 									{/if}
+									<!-- Edit tags button (only shown when not in edit mode) -->
 									<button
 										class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
 										on:click|stopPropagation={() => startEditTag(chat)}
@@ -616,6 +655,7 @@ const SEARCH_DEBOUNCE = 500;
 								{/if}
 							</div>
 
+							<!-- Last Updated Timestamp: Shows relative time since last update -->
 							<div class="text-xs text-gray-500 dark:text-gray-400">
 								{$i18n.t('Updated')} {dayjs((chat.updated_at || 0) * 1000).fromNow()}
 							</div>
@@ -624,6 +664,7 @@ const SEARCH_DEBOUNCE = 500;
 				{/each}
 			</div>
 		{:else}
+			<!-- Empty State: Shown when no chats match the current search/filter criteria -->
 			<div class="w-full h-full flex flex-col justify-center items-center my-16 mb-24">
 				<div class="max-w-md text-center">
 					<div class="text-3xl mb-3">😕</div>
@@ -636,6 +677,7 @@ const SEARCH_DEBOUNCE = 500;
 		{/if}
 	</div>
 {:else}
+	<!-- Loading State: Shown while initial data is being fetched -->
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
 	</div>
