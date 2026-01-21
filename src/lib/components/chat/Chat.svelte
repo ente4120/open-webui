@@ -1212,6 +1212,9 @@ $: systemPrompt;
 					files: chatFiles
 				});
 
+				// Validate chat params updated correctly
+				params = saveParams;
+
 				currentChatPage.set(1);
 				await chats.set(await getChatList(localStorage.token, $currentChatPage));
 			}
@@ -1269,6 +1272,9 @@ $: systemPrompt;
 					params: saveParams,
 					files: chatFiles
 				});
+
+				// Validate chat params updated correctly
+				params = saveParams;
 
 				currentChatPage.set(1);
 				await chats.set(await getChatList(localStorage.token, $currentChatPage));
@@ -2383,6 +2389,10 @@ $: systemPrompt;
 					params: saveParams,
 					files: chatFiles
 				});
+
+				// Validate chat params updated correctly
+				params = saveParams;
+
 				currentChatPage.set(1);
 				await chats.set(await getChatList(localStorage.token, $currentChatPage));
 			}
@@ -2544,6 +2554,9 @@ $: systemPrompt;
 									},
 									null
 								);
+
+								// Validate chat params updated correctly
+								params = saveParams;
 
 								if (savedChat) {
 									temporaryChatEnabled.set(false);
