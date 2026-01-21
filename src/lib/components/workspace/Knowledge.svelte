@@ -47,39 +47,79 @@
 
 	// Debounce timer for search queries
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-	let lastQuery = '';
-	let lastViewOption = '';
-	let isInitialLoad = true;
+	let lastQuery = ''; // Tracks the last query value to detect actual changes
+	let lastViewOption = ''; // Tracks the last viewOption value to detect actual changes
+	let isInitialLoad = true; // Prevents reactive statements from firing during initial component mount
 
-	// Debounce function to delay API calls for search queries
+	/**
+	 * Debounce function to delay API calls for search queries.
+	 * This prevents sending a request on every keystroke - instead, it waits
+	 * for the user to stop typing for the specified delay before executing the callback.
+	 * @param callback - Function to execute after delay
+	 * @param delay - Delay in milliseconds (default: 500ms)
+	 */
 	const debounceSearch = (callback: () => void, delay: number = 500) => {
+		// Clear any existing timer to reset the delay
 		if (searchDebounceTimer) {
 			clearTimeout(searchDebounceTimer);
 		}
+		// Set a new timer that will execute the callback after the delay
 		searchDebounceTimer = setTimeout(callback, delay);
 	};
 
-	// Handle query changes with debounce (only for search input, not initial load)
+	/**
+	 * Reactive statement: Handles search query changes with debounce.
+	 * 
+	 * This reactive block runs automatically whenever 'query', 'loaded', or 'isInitialLoad' changes.
+	 * 
+	 * Flow:
+	 * 1. User types in search box -> query changes
+	 * 2. Reactive statement detects change
+	 * 3. If query actually changed (different from lastQuery), update lastQuery and start debounce timer
+	 * 4. If user continues typing, timer resets (previous timer cleared, new one starts)
+	 * 5. When user stops typing for 500ms, callback executes
+	 * 6. Double-check that query hasn't changed during the delay (prevents race conditions)
+	 * 7. If still valid, call init() to reload data with new search query
+	 */
 	$: if (loaded && query !== undefined && !isInitialLoad) {
+		// Only react to actual query changes (not initial render)
 		if (query !== lastQuery) {
+			// Update the last known query value
 			lastQuery = query;
+			// Start debounce timer - will execute callback after 500ms of no changes
 			debounceSearch(() => {
-				// Only execute if query hasn't changed during debounce
+				// Double-check: Only execute if query hasn't changed during the debounce delay
+				// This prevents race conditions where user typed more characters while waiting
 				if (query === lastQuery) {
+					// Reload data with the new search query
 					init();
 				}
 			});
 		}
 	}
 
-	// Handle viewOption changes immediately (no debounce for filter changes)
+	/**
+	 * Reactive statement: Handles viewOption (filter) changes immediately without debounce.
+	 * 
+	 * This reactive block runs automatically whenever 'viewOption', 'loaded', or 'isInitialLoad' changes.
+	 * 
+	 * Flow:
+	 * 1. User changes filter/view option -> viewOption changes
+	 * 2. Reactive statement detects change
+	 * 3. If viewOption actually changed (different from lastViewOption), update lastViewOption
+	 * 4. Cancel any pending search debounce (filter change takes priority over search)
+	 * 5. Immediately reload data with new filter (no delay)
+	 */
 	$: if (loaded && viewOption !== undefined && viewOption !== lastViewOption && !isInitialLoad) {
+		// Update the last known viewOption value
 		lastViewOption = viewOption;
 		// Cancel any pending search debounce when filter changes
+		// This ensures that if user was typing and then changed filter, we don't send the old search query
 		if (searchDebounceTimer) {
 			clearTimeout(searchDebounceTimer);
 			searchDebounceTimer = null;
 		}
+		// Immediately reload data with the new filter (no debounce delay)
 		init();
 	}
 
